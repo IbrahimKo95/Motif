@@ -26,7 +26,7 @@ src/
   components/  Views (kits, couleurs, typo, forme, familles, favoris), Chrome (top/side), Overlays (dialogues, tiroir, palette ⌘K), bits (Live/fit, stages)
   lib/
     preview.ts        rendu HTML des démos (scoping, fit, kits)
-    data/catalog.mjs  liste des 28 familles, groupes, CSS de preview/export
+    data/catalog.mjs  liste des 29 familles, groupes, CSS de preview/export
     data/families/*.mjs  UNE famille par fichier (variantes, CSS, HTML de démo)
     data/kits.mjs     16 kits (thème + typo + forme + 1 variante par famille)
     data/themes.mjs, typography.mjs, shape.mjs, icons.mjs

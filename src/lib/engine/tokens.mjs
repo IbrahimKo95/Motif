@@ -1,4 +1,4 @@
-import { themeById, THEMES } from "../data/themes.mjs";
+import { themeFor } from "../data/themes.mjs";
 import { typeById, TYPES, fontsHrefFor } from "../data/typography.mjs";
 import { RADIUS, DENSITY, BORDER, DEPTH, MOTION, byId } from "../data/shape.mjs";
 
@@ -20,7 +20,7 @@ const COLOR_KEYS = [
 const SIZES = { "--fs-xs": "12px", "--fs-sm": "14px", "--fs-base": "16px", "--fs-lg": "18px", "--fs-xl": "22px", "--fs-2xl": "28px", "--fs-3xl": "40px", "--fs-4xl": "56px" };
 
 export function resolveCfg(cfg = {}) {
-  const theme = themeById[cfg.theme] || THEMES[0];
+  const theme = themeFor(cfg);
   const type = typeById[cfg.type] || TYPES[0];
   const sh = { ...DEFAULT_CFG.shape, ...(cfg.shape || {}) };
   return {

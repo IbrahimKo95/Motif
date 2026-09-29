@@ -1,6 +1,6 @@
 # Motif
 
-Outil pour définir la DA d'un projet (couleurs, typo, forme, 240 variantes, 28 familles, 16 kits de composants) et exporter un `DESIGN.md` pour Claude Code.
+Outil pour définir la DA d'un projet (couleurs, typo, forme, 249 variantes, 29 familles, 16 kits de composants) et exporter un `DESIGN.md` pour Claude Code.
 
 React 18 + TypeScript + Vite. 100 % statique : aucun serveur applicatif nécessaire.
 

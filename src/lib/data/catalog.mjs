@@ -26,8 +26,9 @@ import cta from "./families/cta.mjs";
 import footer from "./families/footer.mjs";
 import logos from "./families/logos.mjs";
 import auth from "./families/auth.mjs";
+import backgrounds from "./families/backgrounds.mjs";
 
-export const FAMILIES = [buttons, inputs, controls, tabs, badges, cards, alerts, modals, tables, menus, avatars, breadcrumbs, pagination, tooltips, progress, empty, stats, navbar, sidebar, hero, pricing, features, logos, testimonials, faq, cta, footer, auth];
+export const FAMILIES = [buttons, inputs, controls, tabs, badges, cards, alerts, modals, tables, menus, avatars, breadcrumbs, pagination, tooltips, progress, empty, stats, navbar, sidebar, backgrounds, hero, pricing, features, logos, testimonials, faq, cta, footer, auth];
 export const familyById = Object.fromEntries(FAMILIES.map((f) => [f.id, f]));
 export const GROUPS = ["Composants", "Structure", "Sections"];
 export const defaultVariant = (famId) => familyById[famId].variants[0].id;

@@ -89,8 +89,10 @@ export function makeTheme(seed) {
     let al = seed.aL ?? 58;
     while (contrast(L.accent, L.accentContrast) < 4.8 && al < 96) L.accent = hslToHex(h, s, (al += 1));
     L.accentHover = hslToHex(h, s, clamp(hexToHsl(L.accent).l - 6, 0, 100));
+    // accent clair sans marge : le survol s'éclaircit au lieu de s'assombrir
+    if (contrast(L.accentHover, L.accentContrast) < 4.5) L.accentHover = solve(h, s, hexToHsl(L.accent).l + 6, L.accentContrast, 4.6, 1);
   } else {
-    L.accent = solve(h, s, 52, "#FFFFFF", 4.8, -1);
+    L.accent = solve(h, s, seed.aL ?? 52, "#FFFFFF", 4.8, -1);
     L.accentContrast = "#FFFFFF";
     L.accentHover = hslToHex(h, s, clamp(hexToHsl(L.accent).l - 7, 0, 100));
   }

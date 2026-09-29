@@ -15,7 +15,7 @@ for (const f of FAMILIES) {
   }
 }
 for (const k of KITS) {
-  ok(Object.keys(k.picks).length >= 28 && Object.entries(k.picks).every(([f, v]) => variantOf(f, v)), `kit ${k.id} complet`);
+  ok(FAMILIES.every((f) => variantOf(f.id, k.picks[f.id])) && Object.entries(k.picks).every(([f, v]) => variantOf(f, v)), `kit ${k.id} complet (une variante par famille)`);
   const md = buildDesignMd({ ...k, stack: "html", name: "T" });
   ok(md.includes("## Appendix A") && md.includes("--accent:") && md.includes("Appendix B"), `kit ${k.id} export`);
   ok(coherence(k).score >= 80, `kit ${k.id} cohérent`);

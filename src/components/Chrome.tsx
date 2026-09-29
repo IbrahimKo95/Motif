@@ -18,6 +18,7 @@ export function Top() {
         <span>Rechercher un composant, une palette, une police…</span><kbd className="u-kbd">⌘ K</kbd></button>
       <div className="u-actions">
         <button className="u-icon" onClick={() => setUiTheme(uiTheme() === "dark" ? "light" : "dark")} aria-label="Changer le thème de l'interface" title="Thème de l'interface"><Ic name={uiTheme() === "dark" ? "sun" : "moon"} size={17} /></button>
+        <button className="ub u-pagebtn" onClick={() => go("page")} title="Voir tes choix assemblés sur une page"><Ic name="eye" size={16} /><span className="lbl">Voir sur une page</span></button>
         <button className="ub ub-fill" onClick={openDrawer}><Ic name="sparkle" /><span className="lbl">Mon style</span><span className="u-count-pill">{done}/{FAMILIES.length}</span></button>
       </div>
     </header>
@@ -40,7 +41,7 @@ export function Side() {
   return (
     <nav className={"u-side" + (ui.side ? " open" : "")} aria-label="Navigation">
       <div className="u-side-scroll">
-        <div className="u-group"><h6>Démarrer</h6><Nav view="kits" label="Kits" icon="layers" count={KITS.length} /></div>
+        <div className="u-group"><h6>Démarrer</h6><Nav view="kits" label="Kits" icon="layers" count={KITS.length} /><Nav view="page" label="Aperçu sur une page" icon="eye" count={3} /></div>
         <div className="u-group"><h6>Fondations</h6>
           <Nav view="colors" label="Couleurs" icon="palette" count={THEMES.length} />
           <Nav view="type" label="Typographie" icon="type" count={TYPES.length} />

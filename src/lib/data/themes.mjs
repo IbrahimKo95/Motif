@@ -1,4 +1,4 @@
-import { makeTheme } from "../engine/color.mjs";
+import { makeTheme, hexToHsl, contrast } from "../engine/color.mjs";
 
 // Graines : h/s = teinte et saturation de l'accent, nh/ns = teinte et saturation des neutres.
 // on: couleur du texte posé sur l'accent. mono: accent = couleur du texte (style monochrome).
@@ -25,3 +25,31 @@ const SEEDS = [
 
 export const THEMES = SEEDS.map(makeTheme);
 export const themeById = Object.fromEntries(THEMES.map((t) => [t.id, t]));
+
+/* ───────── palette perso : une graine construite depuis l'accent choisi, générée comme les autres (AA garanti) ───────── */
+export const NEUTRALS = [
+  { id: "neutral", name: "Gris purs", nh: null, ns: 3 },
+  { id: "accent", name: "Teintés", nh: null, ns: 14 },
+  { id: "warm", name: "Chauds", nh: 34, ns: 12 },
+  { id: "cool", name: "Froids", nh: 218, ns: 12 },
+];
+export const DEFAULT_CUSTOM = { name: "Ma palette", accent: "#6D4AFF", neutral: "accent", mono: false };
+export const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v || "");
+const cache = new Map();
+export function customTheme(c) {
+  c = { ...DEFAULT_CUSTOM, ...(c || {}) };
+  const hex = (isHex(c.accent) ? c.accent : DEFAULT_CUSTOM.accent).toUpperCase();
+  const key = [hex, c.neutral, !!c.mono, c.name].join("|");
+  if (cache.has(key)) return cache.get(key);
+  const { h, s, l } = hexToHsl(hex);
+  const n = NEUTRALS.find((x) => x.id === c.neutral) || NEUTRALS[1];
+  // texte blanc si l'accent le supporte (ou si un texte sombre ne le supporterait pas non plus) : l'accent garde sa clarté d'origine
+  const onLight = contrast(hex, "#FFFFFF") >= 4.5 || contrast(hex, "#121212") < 4.8;
+  const t = makeTheme({ id: "custom", name: (c.name || "").trim() || DEFAULT_CUSTOM.name, mood: `Perso · ${hex}`, h, s, nh: n.nh ?? h, ns: n.ns, on: onLight ? "light" : "dark", aL: l, mono: !!c.mono });
+  t.custom = true; t.source = hex;
+  cache.set(key, t);
+  if (cache.size > 60) cache.delete(cache.keys().next().value);
+  return t;
+}
+/** Thème effectif d'une configuration (catalogue ou palette perso). */
+export const themeFor = (cfg = {}) => (cfg.theme === "custom" ? customTheme(cfg.custom) : themeById[cfg.theme] || THEMES[0]);

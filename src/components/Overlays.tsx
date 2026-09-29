@@ -8,6 +8,7 @@ import { coherence, energyLabel, variantFit } from "../lib/engine/coherence.mjs"
 import { buildDesignMd, STACK_LIST } from "../lib/engine/export.mjs";
 import { useApp, useUi, set, setUi, closeAll, go, pick, unpick, toggleFav, applyKit, toast, copyOrShow, copyDesignMd, downloadDesignMd } from "../store";
 import { Ic, VariantStage } from "./bits";
+import { LockBtn, ContentFields } from "./Views";
 
 /* ---------------- fenêtre de détail ---------------- */
 export function Dialog() {
@@ -76,11 +77,12 @@ export function Drawer() {
         <div className="u-dr-h"><div><h3>Mon style</h3><p>Ce qui sera écrit dans ton DESIGN.md</p></div><button className="u-icon" onClick={closeAll} aria-label="Fermer"><Ic name="x" size={17} /></button></div>
         <div className="u-dr-b">
           <section className="u-dr-s"><h5>Identité</h5><div className="u-id">
-            <div className="u-id-r"><span>Palette</span><b style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="u-sw" style={{ width: 96 }}>{[c.bg, c.surface, c.border, c.text, c.accent, c.accentSoft].map((x: string, i: number) => <i key={i} style={{ background: x }} />)}</span>{th.name}</b></div>
-            <div className="u-id-r"><span>Typographie</span><b>{r.type.name}</b></div>
-            <div className="u-id-r"><span>Forme</span><b>{r.radius.name} · {r.density.name}</b></div>
+            <div className="u-id-r"><span>Palette</span><b style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="u-sw" style={{ width: 96 }}>{[c.bg, c.surface, c.border, c.text, c.accent, c.accentSoft].map((x: string, i: number) => <i key={i} style={{ background: x }} />)}</span>{th.name}<LockBtn k="theme" small /></b></div>
+            <div className="u-id-r"><span>Typographie</span><b style={{ display: "flex", alignItems: "center", gap: 10 }}>{r.type.name}<LockBtn k="type" small /></b></div>
+            <div className="u-id-r"><span>Forme</span><b style={{ display: "flex", alignItems: "center", gap: 10 }}>{r.radius.name} · {r.density.name}<LockBtn k="shape" small /></b></div>
             <div className="u-id-r"><span>Relief</span><b>{r.border.name} · {r.depth.name} · {r.motion.name}</b></div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{[["colors", "Couleurs"], ["type", "Typo"], ["shape", "Forme"], ["kits", "Kits"]].map(([v, l]) => <button key={v} className="ub ub-sm" onClick={() => goClose(v)}>{l}</button>)}</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{[["colors", "Couleurs"], ["type", "Typo"], ["shape", "Forme"], ["kits", "Kits"]].map(([v, l]) => <button key={v} className="ub ub-sm" onClick={() => goClose(v)}>{l}</button>)}
+              <button className="ub ub-sm" style={{ marginLeft: "auto" }} onClick={() => goClose("page")}><Ic name="eye" size={14} />Voir sur une page</button></div>
           </div></section>
           <section className="u-dr-s"><h5>Cohérence</h5>
             <div className={"u-meter tone-" + coh.tone}><div className="u-meter-h"><b>{coh.score != null ? coh.score : "–"}</b><span>{coh.label}{coh.dominant ? " · " + energyLabel(coh.dominant) : ""}</span></div><div className="u-bar"><i style={{ width: (coh.score || 0) + "%" }} /></div></div>
@@ -90,6 +92,7 @@ export function Drawer() {
           <section className="u-dr-s"><h5>Composants <span>{done}/{FAMILIES.length}</span></h5>
             <div className="u-rows">{FAMILIES.map((f: any) => { const v = variantOf(f.id, s.picks[f.id]); return (
               <div className="u-row" key={f.id}><span className="ic-l"><Ic name={f.icon} /></span><span className="lbl">{f.label}</span><span className={"val" + (v ? "" : " none")}>{v ? v.name : "Non défini"}</span>
+                {v && <LockBtn k={f.id} small />}
                 {v && <button className="u-icon" style={{ width: 28, height: 28, border: 0, background: "none" }} onClick={() => unpick(f.id)} aria-label="Retirer"><Ic name="x" size={14} /></button>}
                 <button className="ub ub-sm ub-ghost" onClick={() => goClose("fam:" + f.id)}>{v ? "Changer" : "Choisir"}</button></div>); })}</div>
           </section>
@@ -98,6 +101,7 @@ export function Drawer() {
             <div className="u-field"><label htmlFor="f-kind">Type de produit (facultatif)</label><input className="u-input" id="f-kind" value={s.kind} onChange={(e) => set({ kind: e.target.value })} placeholder="Ex. application de facturation pour freelances" /></div>
             <div className="u-field"><label htmlFor="f-stack">Stack</label><select className="u-input" id="f-stack" value={s.stack} onChange={(e) => set({ stack: e.target.value })}>{STACK_LIST.map((x: any) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
           </section>
+          <section className="u-dr-s"><h5>Contenu des aperçus</h5><ContentFields withName={false} /></section>
         </div>
         <div className="u-dr-f">
           <button className="ub ub-fill ub-lg ub-block" onClick={copyDesignMd}><Ic name="copy" />Copier le DESIGN.md</button>
@@ -136,6 +140,7 @@ function items(): Item[] {
   const add = (sec: string, label: string, sub: string, icon: string, run: () => void) => out.push({ sec, label, sub, icon, run, hay: norm(`${label} ${sub} ${sec}`) });
   const nav = (v: string) => () => { closeAll(); go(v); };
   add("Navigation", "Kits de départ", `${KITS.length} styles`, "layers", nav("kits"));
+  add("Navigation", "Aperçu sur une page", "landing, tableau de bord, connexion", "eye", nav("page"));
   add("Navigation", "Couleurs", `${THEMES.length} palettes`, "palette", nav("colors"));
   add("Navigation", "Typographie", `${TYPES.length} associations`, "type", nav("type"));
   add("Navigation", "Forme et sensations", "rayons, ombres…", "shapes", nav("shape"));

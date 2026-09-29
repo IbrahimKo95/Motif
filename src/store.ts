@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { FAMILIES, familyById, variantOf } from "./lib/data/catalog.mjs";
-import { themeById } from "./lib/data/themes.mjs";
+import { themeById, DEFAULT_CUSTOM } from "./lib/data/themes.mjs";
 import { typeById } from "./lib/data/typography.mjs";
 import { kitById } from "./lib/data/kits.mjs";
 import { DEFAULT_CFG } from "./lib/engine/tokens.mjs";
@@ -14,7 +14,20 @@ export interface AppState {
   name: string; kind: string; stack: string;
   theme: string; type: string; shape: Record<string, string>;
   mode: Mode; picks: Record<string, string>; favs: string[]; view: string; filters: Record<string, string>;
+  /* familles (ou "theme", "type", "shape") figées pour « Surprends-moi » */
+  locks: string[];
+  /* taille des aperçus */
+  vp: Viewport;
+  /* page d'assemblage */
+  page: PageKind;
+  /* contenu réel injecté dans les démos (le nom réutilise `name`) */
+  headline: string; pitch: string; logo: string;
+  /* palette perso (thème "custom") */
+  custom: Custom;
 }
+export interface Custom { name: string; accent: string; neutral: string; mono: boolean }
+export type Viewport = "auto" | "mobile" | "tablet" | "desktop";
+export type PageKind = "landing" | "dashboard" | "auth";
 export interface Ui {
   drawer: boolean; dialog: null | { fam: string; var: string; tab: "html" | "css" };
   palette: boolean; file: boolean; side: boolean;
@@ -25,6 +38,7 @@ const KEY = "motif:v2";
 const fresh = (): AppState => ({
   name: "", kind: "", stack: "html", theme: DEFAULT_CFG.theme, type: DEFAULT_CFG.type,
   shape: { ...DEFAULT_CFG.shape }, mode: "light", picks: {}, favs: [], view: "kits", filters: {},
+  locks: [], vp: "auto", page: "landing", headline: "", pitch: "", logo: "", custom: { ...DEFAULT_CUSTOM },
 });
 
 function load(): AppState {
@@ -34,9 +48,11 @@ function load(): AppState {
     if (!raw) return s;
     const p = JSON.parse(raw);
     Object.assign(s, p, { shape: { ...DEFAULT_CFG.shape, ...(p.shape || {}) } });
-    if (!themeById[s.theme]) s.theme = DEFAULT_CFG.theme;
+    s.custom = { ...DEFAULT_CUSTOM, ...(p.custom || {}) };
+    if (!themeById[s.theme] && s.theme !== "custom") s.theme = DEFAULT_CFG.theme;
     if (!typeById[s.type]) s.type = DEFAULT_CFG.type;
     for (const [f, v] of Object.entries(s.picks)) if (!variantOf(f, v as string)) delete s.picks[f];
+    s.locks = (s.locks || []).filter((k) => k === "theme" || k === "type" || k === "shape" || s.picks[k]);
     s.favs = (s.favs || []).filter((k) => { const [f, v] = k.split(":"); return variantOf(f, v); });
   } catch { /* stockage indisponible */ }
   return s;
@@ -73,10 +89,18 @@ export const openDrawer = () => setUi({ dialog: null, palette: false, drawer: tr
 
 export function pick(fam: string, vid: string) {
   const had = state.picks[fam] === vid;
-  set((s) => { const picks = { ...s.picks }; if (had) delete picks[fam]; else picks[fam] = vid; return { picks }; });
+  set((s) => { const picks = { ...s.picks }; if (had) delete picks[fam]; else picks[fam] = vid; return { picks, locks: had ? s.locks.filter((k) => k !== fam) : s.locks }; });
   if (!had) toast(`${familyById[fam].label} : ${variantOf(fam, vid).name} ajouté à ton style`, { action: { label: "Voir", run: openDrawer } });
 }
-export const unpick = (fam: string) => set((s) => { const picks = { ...s.picks }; delete picks[fam]; return { picks }; });
+export const unpick = (fam: string) => set((s) => { const picks = { ...s.picks }; delete picks[fam]; return { picks, locks: s.locks.filter((k) => k !== fam) }; });
+export const isLocked = (s: AppState, k: string) => s.locks.includes(k);
+export function toggleLock(k: string) {
+  const on = !state.locks.includes(k);
+  if (on && familyById[k] && !state.picks[k]) { toast("Choisis d'abord une variante pour la verrouiller.", { err: true }); return; }
+  set((s) => ({ locks: on ? [...s.locks, k] : s.locks.filter((x) => x !== k) }));
+  const lbl = familyById[k]?.label || { theme: "Palette", type: "Typographie", shape: "Forme" }[k] || k;
+  toast(on ? `${lbl} verrouillé : « Surprends-moi » n'y touchera pas` : `${lbl} déverrouillé`);
+}
 export const toggleFav = (fam: string, vid: string) => set((s) => { const k = fam + ":" + vid; return { favs: s.favs.includes(k) ? s.favs.filter((x) => x !== k) : [...s.favs, k] }; });
 export function applyKit(id: string) {
   const k = kitById[id];
@@ -84,26 +108,33 @@ export function applyKit(id: string) {
   toast(`Kit « ${k.name} » appliqué`, { action: { label: "Voir mon style", run: openDrawer } });
 }
 /* « Surprends-moi » : tire au hasard palette, typo, forme et une variante par famille,
-   garde le meilleur de 60 essais selon le score de cohérence. */
+   garde le meilleur de 60 essais selon le score de cohérence. Les éléments verrouillés ne bougent pas. */
 export function surprise() {
   const rnd = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
   const SH = { radius: ["sharp", "soft", "round", "capsule"], density: ["compact", "normal", "airy"], border: ["hairline", "strong"], depth: ["flat", "soft", "hard"], motion: ["snappy", "smooth"] };
+  const L = new Set(state.locks);
+  const lockedFams = (FAMILIES as any[]).filter((f) => L.has(f.id) && state.picks[f.id]);
+  /* l'ancre d'énergie vient d'un élément verrouillé s'il y en a un (boutons en priorité) */
+  const lockedAnchor = lockedFams.find((f) => f.id === "buttons") || lockedFams[0];
   let best: any = null, bestScore = -1;
   for (let i = 0; i < 60; i++) {
-    const shape: any = { radius: rnd(SH.radius), density: rnd(SH.density), border: rnd(SH.border), depth: rnd(SH.depth), motion: rnd(SH.motion) };
+    let shape: any = { radius: rnd(SH.radius), density: rnd(SH.density), border: rnd(SH.border), depth: rnd(SH.depth), motion: rnd(SH.motion) };
     if (shape.depth === "hard") shape.border = "strong";
-    const anchor: any = rnd((FAMILIES as any[]).find((f) => f.id === "buttons").variants);
+    if (L.has("shape")) shape = { ...state.shape };
+    const anchor: any = lockedAnchor ? variantOf(lockedAnchor.id, state.picks[lockedAnchor.id]) : rnd((FAMILIES as any[]).find((f) => f.id === "buttons").variants);
     const picks: Record<string, string> = {};
     for (const f of FAMILIES as any[]) {
+      if (L.has(f.id) && state.picks[f.id]) { picks[f.id] = state.picks[f.id]; continue; }
       const pool = f.variants.filter((v: any) => v.attrs.energy === anchor.attrs.energy || Math.random() < 0.25);
       picks[f.id] = (rnd(pool.length ? pool : f.variants) as any).id;
     }
-    const cand = { theme: rnd(THEMES as any[]).id, type: rnd(TYPES as any[]).id, mode: Math.random() < 0.35 ? "dark" : "light", shape, picks };
+    const cand = { theme: L.has("theme") ? state.theme : rnd(THEMES as any[]).id, type: L.has("type") ? state.type : rnd(TYPES as any[]).id, mode: L.has("theme") ? state.mode : Math.random() < 0.35 ? "dark" : "light", shape, picks };
     const sc = coherence(cand as any).score ?? 0;
     if (sc > bestScore) { bestScore = sc; best = cand; }
   }
   set({ ...best, favs: state.favs });
-  toast(`Style surprise appliqué (cohérence ${bestScore}/100)`, { action: { label: "Voir mon style", run: openDrawer } });
+  const n = state.locks.length;
+  toast(`Style surprise appliqué (cohérence ${bestScore}/100${n ? `, ${n} élément${n > 1 ? "s" : ""} verrouillé${n > 1 ? "s" : ""}` : ""})`, { action: { label: "Voir mon style", run: openDrawer } });
 }
 export const completionCount = () => FAMILIES.filter((f) => state.picks[f.id]).length;
 

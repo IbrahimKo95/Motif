@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useApp, useUi, closeAll, setUi } from "./store";
 import { Top, Side } from "./components/Chrome";
-import { KitsView, ColorsView, TypeView, ShapeView, FavsView, FamilyView } from "./components/Views";
+import { KitsView, ColorsView, TypeView, ShapeView, FavsView, FamilyView, PageView } from "./components/Views";
 import { Dialog, Drawer, FileModal, Palette, Toast } from "./components/Overlays";
 import { familyById } from "./lib/data/catalog.mjs";
 
@@ -11,6 +11,7 @@ function Main() {
   if (view === "type") return <TypeView />;
   if (view === "shape") return <ShapeView />;
   if (view === "favs") return <FavsView />;
+  if (view === "page") return <PageView />;
   if (view.startsWith("fam:") && familyById[view.slice(4)]) return <FamilyView id={view.slice(4)} />;
   return <KitsView />;
 }
